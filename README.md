@@ -141,6 +141,8 @@ Then in `my-tool.bat` use `%EXEDIR%` instead of `%~dp0` to find co-located binar
 
 ![taskmon screenshot](taskmon/screenshots/ss1.png)
 
+![taskmon demo](taskmon/screenshots/vid1.mp4)
+
 Displays live performance stats as sparkline graphs on the right side of the
 Windows taskbar, sitting just to the left of the system clock.
 
