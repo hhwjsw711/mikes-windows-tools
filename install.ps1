@@ -11,8 +11,8 @@
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File install.ps1
 
-$RepoDir  = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ToolsDir = "C:\dev\tools"
+$RepoDir  = Split-Path -Parent $MyInvocation.MyCommand.Path   # auto-resolved; move the repo freely
+$ToolsDir = "C:\dev\tools"                                    # directory on your PATH
 
 if (-not (Test-Path $ToolsDir)) {
     Write-Host "Error: ToolsDir '$ToolsDir' not found. Edit the `$ToolsDir variable in install.ps1." -ForegroundColor Red

@@ -1,66 +1,146 @@
 # mikes-windows-tools
 
-Personal Windows productivity scripts and CLI tools.
+Personal Windows productivity scripts and CLI tools, tracked in git so changes
+are versioned and the setup can be reproduced on any machine.
 
-## Setup (run once after cloning)
+---
+
+## Quick start (fresh machine)
 
 ```powershell
-cd C:\dev\mikes-windows-tools
+git clone <repo-url> C:\dev\me\mikes-windows-tools
+cd C:\dev\me\mikes-windows-tools
 powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-This writes thin stub `.bat` files into `C:\dev\tools` (which is on PATH).  
-The stubs simply forward to the real source files in this repo.
+Then make sure `C:\dev\tools` is on your `PATH` (it should already be).
 
-**After that, updating any tool is just:**
+---
 
-```powershell
-git pull
+## How it works
+
+```
+C:\dev\me\mikes-windows-tools\   ← this repo (source of truth)
+    install.ps1
+    transcribe\
+        transcribe.bat            ← real logic lives here
+    scale-monitor4\
+        scale-monitor4.ps1
+        scale-monitor4.vbs
+        scale-monitor4.bat
+    ...
+
+C:\dev\tools\                    ← on PATH; kept clean
+    transcribe.bat               ← thin stub: sets EXEDIR, calls repo bat
+    removebg.bat                 ← thin stub
+    backup-phone.bat             ← thin stub
+    all-hands.bat                ← thin stub
+    Scale Monitor 4.lnk         ← taskbar shortcut → repo .vbs
+    ffmpeg.exe                   ← large binaries stay here, not in repo
+    faster-whisper-xxl.exe
+    ...
 ```
 
-No reinstall needed — stubs point permanently into the repo.  
-Re-run `install.ps1` only when a **new tool** is added.
+`install.ps1` generates the stubs. The stubs point at absolute paths inside
+the repo, so a `git pull` is all you ever need to pick up changes to any tool.
+Re-run `install.ps1` only when **adding a new tool**.
 
-## Tools
+---
 
-| Tool | What it does |
-|---|---|
-| `transcribe <video>` | Extracts audio and transcribes via faster-whisper (CUDA/CPU) |
-| `removebg <image>` | Removes image background using rembg/birefnet |
-| `backup-phone` | Backs up Android phone over ADB |
-| `all-hands` | Launches OpenHands AI coding agent via Docker |
-| Scale Monitor 4 *(taskbar)* | Toggles Monitor 4 between 200% (normal) and 300% (filming) |
+## Updating a tool
+
+```powershell
+# 1. Edit the source file in the repo (e.g. scale-monitor4\scale-monitor4.ps1)
+# 2. Test it
+# 3. Commit
+cd C:\dev\me\mikes-windows-tools
+git add .
+git commit -m "scale-monitor4: describe the change"
+```
+
+No reinstall needed. The stub in `C:\dev\tools` already points at the repo file.
+
+---
 
 ## Adding a new tool
 
+### CLI tool (runs from terminal)
+
 1. Create a subfolder: `mkdir my-tool`
-2. Put all source files (`.ps1`, `.vbs`, `.bat`) in it
-3. Add a stub entry to `install.ps1`
-4. Run `install.ps1` once to wire it up
-5. Commit
+2. Write the logic — a `.bat`, `.ps1`, or `.vbs` as appropriate
+3. Add a stub entry in `install.ps1` using the `Write-BatStub` helper
+4. Run `install.ps1` once
+5. Commit everything
 
-## Directory layout
+Stub pattern for a plain bat tool:
 
+```powershell
+Write-BatStub "my-tool" @"
+@echo off
+call "$RepoDir\my-tool\my-tool.bat" %*
+"@
 ```
-mikes-windows-tools/
-├── install.ps1          ← run once to wire everything up
-├── transcribe/
-│   └── transcribe.bat
-├── removebg/
-│   └── removebg.bat
-├── all-hands/
-│   └── all-hands.bat
-├── backup-phone/
-│   ├── backup-phone.bat
-│   └── backup-phone.ps1
-└── scale-monitor4/
-    ├── scale-monitor4.ps1
-    ├── scale-monitor4.vbs
-    └── scale-monitor4.bat
+
+Stub pattern when the tool needs the `C:\dev\tools` exe directory (like `transcribe`):
+
+```powershell
+Write-BatStub "my-tool" @"
+@echo off
+set "EXEDIR=%~dp0"
+call "$RepoDir\my-tool\my-tool.bat" %*
+"@
 ```
+
+Then in `my-tool.bat` use `%EXEDIR%` instead of `%~dp0` to find co-located binaries.
+
+### Taskbar / GUI tool (like scale-monitor4)
+
+1. Create a subfolder with the `.ps1` and a `.vbs` launcher:
+
+   **`my-tool.vbs`** (boilerplate — copy from `scale-monitor4\scale-monitor4.vbs`):
+   ```vbs
+   Set objShell = CreateObject("WScript.Shell")
+   objShell.Run "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File """ & _
+       CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) & _
+       "\my-tool.ps1""", 0, False
+   ```
+
+2. Add a shortcut entry in `install.ps1`:
+
+   ```powershell
+   $vbsPath      = "$RepoDir\my-tool\my-tool.vbs"
+   $shortcutPath = Join-Path $ToolsDir "My Tool.lnk"
+   $wsh = New-Object -ComObject WScript.Shell
+   $sc  = $wsh.CreateShortcut($shortcutPath)
+   $sc.TargetPath       = "wscript.exe"
+   $sc.Arguments        = "`"$vbsPath`""
+   $sc.WorkingDirectory = "$RepoDir\my-tool"
+   $sc.Description      = "What this tool does"
+   $sc.IconLocation     = "%SystemRoot%\System32\imageres.dll,109"
+   $sc.Save()
+   ```
+
+3. Run `install.ps1`, then right-click the `.lnk` in `C:\dev\tools` → **Pin to taskbar**.
+
+---
+
+## Tools reference
+
+| Name | Type | What it does |
+|---|---|---|
+| `transcribe <video> [--cpu]` | CLI | Extracts audio and transcribes via faster-whisper (CUDA with CPU fallback) |
+| `removebg <image>` | CLI | Removes image background using rembg / birefnet-portrait |
+| `backup-phone` | CLI | Backs up Android phone over ADB |
+| `all-hands` | CLI | Launches OpenHands AI coding agent via Docker |
+| Scale Monitor 4 | Taskbar | Toggles Monitor 4 (HG584T05) between 200% (normal) and 300% (filming) |
+
+---
 
 ## Notes
 
-- Large binaries (`ffmpeg.exe`, `faster-whisper-xxl.exe`, etc.) live in `C:\dev\tools` and are **not** tracked here.
-- The `transcribe` stub passes `EXEDIR=C:\dev\tools` so the bat finds those binaries.
-- The `Scale Monitor 4.lnk` taskbar shortcut is regenerated by `install.ps1` and lives in `C:\dev\tools`.
+- Large binaries (`ffmpeg.exe`, `faster-whisper-xxl.exe`, `_models\`, etc.) live in
+  `C:\dev\tools` and are **not** tracked here — too big for git.
+- The `transcribe` stub injects `EXEDIR=C:\dev\tools` so the bat finds those binaries
+  even though the logic now lives in this repo.
+- If you move the repo, just run `install.ps1` again to regenerate the stubs with
+  the new absolute path.
