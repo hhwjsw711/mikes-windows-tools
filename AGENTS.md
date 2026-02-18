@@ -34,29 +34,49 @@ PATH) via thin stub `.bat` files or `.lnk` shortcuts.
 
 ---
 
+## deps.ps1 convention
+
+Each tool can have an optional `<name>\deps.ps1` that installs or checks its
+dependencies. Rules:
+
+- **Idempotent** — check before installing; safe to run multiple times.
+- **Self-contained** — must work when run directly (`.\transcribe\deps.ps1`).
+- **Clear output** — use `Write-Host` with colour so the user sees what happened.
+- For large manual-download binaries (e.g. `ffmpeg.exe`), just check and print
+  a helpful message; don't try to auto-download.
+- For Python packages use `pip install`; check `python -c "import pkg"` first.
+- For system tools (e.g. Docker) use `Get-Command` to detect and warn if absent.
+
+`install.ps1` auto-discovers every `*/deps.ps1` under the repo root and runs
+them in alphabetical order. Pass `-SkipDeps` to skip this step.
+
+---
+
 ## Adding a CLI tool
 
 1. `mkdir <name>` in the repo root
 2. Write `<name>\<name>.bat` (or `.ps1`) with the full logic
 3. If the tool needs `ffmpeg.exe`, `faster-whisper-xxl.exe`, or other large
-   binaries that live in `C:\dev\tools`, accept `EXEDIR` as an env var
-   and fall back: `if not defined EXEDIR set "EXEDIR=%~dp0"`
-4. Add a `Write-BatStub` call in `install.ps1`
-5. Run `install.ps1`
-6. Smoke-test: open a new terminal and call the command by name
-7. Commit
+ binaries that live in `C:\dev\tools`, accept `EXEDIR` as an env var
+ and fall back: `if not defined EXEDIR set "EXEDIR=%~dp0"`
+4. If the tool has external dependencies, write `<name>\deps.ps1`
+5. Add a `Write-BatStub` call in `install.ps1`
+6. Run `install.ps1`
+7. Smoke-test: open a new terminal and call the command by name
+8. Commit
 
 ## Adding a taskbar / GUI tool
 
 1. `mkdir <name>` in the repo root
 2. Write `<name>\<name>.ps1` with WinForms or notification logic
 3. Copy `scale-monitor4\scale-monitor4.vbs` as `<name>\<name>.vbs` and update
-   the filename reference inside it
-4. Add a shortcut block in `install.ps1` (see the `scale-monitor4` section)
-5. Run `install.ps1`
-6. Test via `wscript.exe "C:\dev\me\mikes-windows-tools\<name>\<name>.vbs"`
-7. Right-click the generated `.lnk` in `C:\dev\tools` → Pin to taskbar
-8. Commit
+ the filename reference inside it
+4. If the tool has external dependencies, write `<name>\deps.ps1`
+5. Add a shortcut block in `install.ps1` (see the `scale-monitor4` section)
+6. Run `install.ps1`
+7. Test via `wscript.exe "C:\dev\me\mikes-windows-tools\<name>\<name>.vbs"`
+8. Right-click the generated `.lnk` in `C:\dev\tools` → Pin to taskbar
+9. Commit
 
 ---
 
@@ -74,21 +94,25 @@ PATH) via thin stub `.bat` files or `.lnk` shortcuts.
 mikes-windows-tools\
 ├── AGENTS.md                  ← you are here
 ├── README.md
-├── install.ps1                ← generates stubs; re-run when adding tools
+├── install.ps1                ← generates stubs + runs deps.ps1; re-run when adding tools
 ├── .gitignore
 ├── all-hands\
-│   └── all-hands.bat
+│   ├── all-hands.bat
+│   └── deps.ps1               ← checks Docker is installed
 ├── backup-phone\
 │   ├── backup-phone.bat
-│   └── backup-phone.ps1
+│   ├── backup-phone.ps1
+│   └── deps.ps1               ← pip install pillow pillow-heif
 ├── removebg\
-│   └── removebg.bat
+│   ├── removebg.bat
+│   └── deps.ps1               ← pip install rembg[gpu]
 ├── scale-monitor4\
 │   ├── scale-monitor4.ps1     ← WinForms popup UI + registry toggle
 │   ├── scale-monitor4.vbs     ← silent launcher (no window flash)
 │   └── scale-monitor4.bat     ← thin bat wrapper (not used directly)
 └── transcribe\
-    └── transcribe.bat         ← uses %EXEDIR% for ffmpeg / whisper paths
+    ├── transcribe.bat         ← uses %EXEDIR% for ffmpeg / whisper paths
+    └── deps.ps1               ← checks ffmpeg.exe + faster-whisper-xxl.exe exist
 ```
 
 ---

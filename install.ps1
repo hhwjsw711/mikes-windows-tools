@@ -7,9 +7,15 @@
 #   - Writes thin stub .bat files into $ToolsDir (which should be on your PATH)
 #   - Stubs simply forward to the real scripts inside this repo
 #   - Recreates the "Scale Monitor 4" taskbar shortcut
+#   - Runs each tool's deps.ps1 (if present) to install/check dependencies
 #
 # Usage:
 #   powershell -ExecutionPolicy Bypass -File install.ps1
+#   powershell -ExecutionPolicy Bypass -File install.ps1 -SkipDeps
+
+param(
+    [switch]$SkipDeps
+)
 
 $RepoDir  = Split-Path -Parent $MyInvocation.MyCommand.Path   # auto-resolved; move the repo freely
 $ToolsDir = "C:\dev\tools"                                    # directory on your PATH
@@ -81,8 +87,30 @@ $sc.Save()
 Write-Host "  [lnk]  $shortcutPath" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
+# Dependencies — run each tool's deps.ps1 if present
+# ---------------------------------------------------------------------------
+if ($SkipDeps) {
+    Write-Host "Skipping dependency checks (-SkipDeps was set)." -ForegroundColor DarkGray
+} else {
+    Write-Host ""
+    Write-Host "Checking / installing tool dependencies..." -ForegroundColor Cyan
+
+    $depsScripts = Get-ChildItem -Path $RepoDir -Recurse -Filter "deps.ps1" |
+        Where-Object { $_.FullName -ne (Join-Path $RepoDir "deps.ps1") }
+
+    if ($depsScripts.Count -eq 0) {
+        Write-Host "  (no deps.ps1 files found)" -ForegroundColor DarkGray
+    } else {
+        foreach ($script in $depsScripts | Sort-Object FullName) {
+            & $script.FullName
+        }
+    }
+}
+
+# ---------------------------------------------------------------------------
 Write-Host ""
 Write-Host "Done. To update tools in future: git pull (no reinstall needed)." -ForegroundColor Yellow
 Write-Host "To add a new tool: create its subfolder, then re-run install.ps1." -ForegroundColor Yellow
+Write-Host "To skip dependency checks: install.ps1 -SkipDeps" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "Reminder: right-click 'Scale Monitor 4.lnk' in $ToolsDir and pin to taskbar." -ForegroundColor Cyan
