@@ -29,6 +29,7 @@ If you want to use any of this, the recommended approach is:
 | <img src="transcribe/icons/film.png"> [transcribe](transcribe/README.md) | CLI + context menu | Extract audio from a video and transcribe it via faster-whisper (CUDA with CPU fallback); right-click any video file in Explorer |
 | <img src="removebg/icons/picture.png"> [removebg](removebg/README.md) | CLI + context menu | Remove the background from an image using rembg / birefnet-portrait; right-click any image file in Explorer |
 | <img src="ghopen/icons/world_go.png"> [ghopen](ghopen/README.md) | CLI + context menu | Open the current repo on GitHub; opens the PR page if on a PR branch; right-click any folder in Explorer |
+| [ctxmenu](ctxmenu/README.md) | GUI | Manage Explorer context menu entries - toggle shell verbs and COM handlers on/off without admin rights |
 | [backup-phone](backup-phone/README.md) | CLI | Back up an iPhone over MTP (USB) to a flat folder on disk |
 | [scale-monitor4](scale-monitor4/README.md) | Taskbar | Toggle Monitor 4 between 200% (normal) and 300% (filming) scaling |
 | [taskmon](taskmon/README.md) | Taskbar | Real-time NET/CPU/GPU/MEM sparklines overlaid on the taskbar |
