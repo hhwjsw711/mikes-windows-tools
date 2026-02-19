@@ -9,13 +9,30 @@ are versioned and the setup can be reproduced on any machine.
 
 | Name | Type | Description |
 |---|---|---|
-| [transcribe](transcribe/README.md) | CLI | Extract audio from a video and transcribe it via faster-whisper (CUDA with CPU fallback) |
+| [transcribe](transcribe/README.md) | CLI + context menu | Extract audio from a video and transcribe it via faster-whisper (CUDA with CPU fallback); also available via right-click on video files in Explorer |
 | [removebg](removebg/README.md) | CLI | Remove the background from an image using rembg / birefnet-portrait |
 | [backup-phone](backup-phone/README.md) | CLI | Back up an iPhone over MTP (USB) to a flat folder on disk |
 | [ghopen](ghopen/README.md) | CLI | Open the current repo on GitHub; opens the PR page if on a PR branch |
 | [scale-monitor4](scale-monitor4/README.md) | Taskbar | Toggle Monitor 4 between 200% (normal) and 300% (filming) scaling |
 | [taskmon](taskmon/README.md) | Taskbar | Real-time NET/CPU/GPU/MEM sparklines overlaid on the taskbar |
 | [voice-type](voice-type/README.md) | Taskbar | Push-to-talk local voice transcription - hold Right Ctrl, speak, release to paste |
+
+---
+
+## A note if you found this repo
+
+These tools are built for one person on one machine - mine. They make assumptions
+about paths, hardware, and workflows that are specific to my setup. They probably
+won't work for you out of the box.
+
+If you want to use any of this, the recommended approach is:
+
+1. Clone it
+2. Open it in Cursor (or your AI editor of choice) and **ask the agent to explain what each tool does and what it assumes**
+3. Customise freely - change paths, remove tools you don't need, add your own
+4. Don't open issues or pull requests. These aren't general-purpose tools and I'm not maintaining them for anyone but myself. Fork and adapt.
+
+> Don't blindly trust what's here. Have your AI agent read the code and tell you what it will do before you run it.
 
 ---
 
@@ -146,3 +163,7 @@ Then in `my-tool.bat` use `%EXEDIR%` instead of `%~dp0` to find co-located binar
   even though the logic now lives in this repo.
 - If you move the repo, just run `install.ps1` again to regenerate the stubs with
   the new absolute path.
+- `install.ps1` also registers a "Mike's Tools" submenu in the Explorer right-click
+  context menu for common video extensions (`.mp4`, `.mkv`, `.avi`, etc.). This
+  writes to `HKCU\Software\Classes\SystemFileAssociations\.<ext>\shell\MikesTools`
+  and is safe to re-run - it's idempotent.

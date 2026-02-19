@@ -145,6 +145,46 @@ $vtSc.Save()
 Write-Host "  [lnk]  $vtShortcutPath" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
+# Context menu - "Mike's Tools" submenu on video files in File Explorer
+# Registered per-extension under SystemFileAssociations (more reliable than
+# the perceived-type path which Explorer doesn't always pick up).
+# ---------------------------------------------------------------------------
+Write-Host "  [reg]  Registering 'Mike''s Tools' context menu for video files..." -ForegroundColor Green
+
+$transcribeCmd = 'cmd.exe /k ""C:\dev\tools\transcribe.bat" "%1""'
+
+$videoExts = @('.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm', '.m4v', '.mpg', '.mpeg', '.ts', '.mts', '.m2ts', '.flv', '.f4v')
+
+foreach ($ext in $videoExts) {
+    $menuRoot  = "HKCU:\Software\Classes\SystemFileAssociations\$ext\shell\MikesTools"
+    $transcKey = "$menuRoot\shell\Transcribe"
+    $cmdKey    = "$transcKey\command"
+
+    New-Item -Path $menuRoot  -Force | Out-Null
+    New-Item -Path $transcKey -Force | Out-Null
+    New-Item -Path $cmdKey    -Force | Out-Null
+
+    Set-ItemProperty -Path $menuRoot  -Name "MUIVerb"     -Value "Mike's Tools"
+    Set-ItemProperty -Path $menuRoot  -Name "SubCommands" -Value ""
+    Set-ItemProperty -Path $transcKey -Name "MUIVerb"     -Value "Transcribe Video"
+    Set-ItemProperty -Path $cmdKey    -Name "(Default)"   -Value $transcribeCmd
+}
+
+# Notify the shell that file associations changed so Explorer picks it up
+# without needing a manual restart.
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class ShellNotify {
+    [DllImport("shell32.dll")]
+    public static extern void SHChangeNotify(int wEventId, uint uFlags, IntPtr dwItem1, IntPtr dwItem2);
+}
+'@
+[ShellNotify]::SHChangeNotify(0x08000000, 0x0000, [IntPtr]::Zero, [IntPtr]::Zero)
+
+Write-Host "  [reg]  Done. Right-click a video in Explorer to see Mike's Tools." -ForegroundColor Green
+
+# ---------------------------------------------------------------------------
 # Dependencies — run each tool's deps.ps1 if present
 # ---------------------------------------------------------------------------
 if ($SkipDeps) {
