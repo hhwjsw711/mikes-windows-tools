@@ -221,6 +221,40 @@ After code changes to any `.cs` file, just re-run `build-and-run.bat`.
 
 ---
 
+## voice-type specifics
+
+Push-to-talk voice transcription tool. Hold Right Ctrl to record, release to transcribe and inject text into the active window.
+
+### Dev workflow
+
+After any code change to `voice-type\voice-type.py`, always cycle the running process:
+
+```powershell
+# Kill all instances
+Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*voice-type.py*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
+# Launch one fresh detached instance
+$python = (Get-Command python).Source
+$psi = New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName = $python
+$psi.Arguments = "`"C:\dev\me\mikes-windows-tools\voice-type\voice-type.py`""
+$psi.WorkingDirectory = "C:\dev\me\mikes-windows-tools\voice-type"
+$psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
+$psi.UseShellExecute = $true
+[System.Diagnostics.Process]::Start($psi) | Out-Null
+
+# Verify exactly one instance
+Start-Sleep -Seconds 2
+Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*voice-type.py*" } | Select-Object ProcessId
+```
+
+**Rules:**
+- Always kill all instances before launching a new one. Never leave multiple instances running.
+- Always launch detached (UseShellExecute = $true, WindowStyle = Hidden) so it survives the terminal session.
+- After launching, tail the log to confirm a clean startup: `Get-Content voice-type\voice-type.log | Select-Object -Last 5`
+
+---
+
 ## scale-monitor4 specifics
 
 - Monitor: HG584T05, "Display 4", AMD Radeon Graphics
