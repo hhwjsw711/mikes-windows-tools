@@ -227,31 +227,31 @@ Push-to-talk voice transcription tool. Hold Right Ctrl to record, release to tra
 
 ### Dev workflow
 
-After any code change to `voice-type\voice-type.py`, always cycle the running process:
+After any code change to `voice-type\voice-type.py`, restart with:
 
+```
+cd voice-type
+restart.bat
+```
+
+`restart.bat` kills all existing instances then relaunches via `voice-type.vbs`.
+Always use this - never launch `voice-type.py` directly with `Start-Process` or
+`python`, as that bypasses the kill step and leaves multiple instances running.
+
+After restarting, confirm a clean startup:
 ```powershell
-# Kill all instances
-Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*voice-type.py*" } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Get-Content voice-type\voice-type.log | Select-Object -Last 5
+```
 
-# Launch one fresh detached instance
-$python = (Get-Command python).Source
-$psi = New-Object System.Diagnostics.ProcessStartInfo
-$psi.FileName = $python
-$psi.Arguments = "`"C:\dev\me\mikes-windows-tools\voice-type\voice-type.py`""
-$psi.WorkingDirectory = "C:\dev\me\mikes-windows-tools\voice-type"
-$psi.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Hidden
-$psi.UseShellExecute = $true
-[System.Diagnostics.Process]::Start($psi) | Out-Null
-
-# Verify exactly one instance
-Start-Sleep -Seconds 2
-Get-WmiObject Win32_Process | Where-Object { $_.CommandLine -like "*voice-type.py*" } | Select-Object ProcessId
+To verify exactly one instance is running:
+```powershell
+cmd /c "tasklist /FO CSV" | ConvertFrom-Csv | Where-Object { $_."Image Name" -like "*python*" }
 ```
 
 **Rules:**
 - Always kill all instances before launching a new one. Never leave multiple instances running.
-- Always launch detached (UseShellExecute = $true, WindowStyle = Hidden) so it survives the terminal session.
-- After launching, tail the log to confirm a clean startup: `Get-Content voice-type\voice-type.log | Select-Object -Last 5`
+- Always launch via `restart.bat` or `voice-type.vbs` - never directly with `Start-Process python ...`.
+- After launching, tail the log to confirm a clean startup.
 
 ---
 
